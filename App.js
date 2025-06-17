@@ -1,5 +1,5 @@
 // App.js
-import 'react-native-gesture-handler'; // Required for react-navigation
+import 'react-native-gesture-handler'; // Required for react-navigation - KEEP THIS AS THE FIRST IMPORT
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -9,7 +9,6 @@ import ActivityDetailScreen from './src/screens/ActivityDetailScreen';
 import { initDb } from './src/services/dbService';
 import CustomModal from './src/components/CustomModal';
 import { Text, View, ActivityIndicator, StyleSheet } from 'react-native';
-import 'react-native-gesture-handler';
 
 const Stack = createStackNavigator();
 
@@ -33,7 +32,7 @@ export default function App() {
     };
 
     initializeDatabase();
-  }, []);
+  }, []); // Run only once on component mount
 
   if (!isDbReady) {
     return (

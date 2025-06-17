@@ -18,28 +18,32 @@ export const initDb = () => {
       () => {
         console.log('Database opened successfully');
         // Create table if it doesn't exist
-        db.transaction((tx) => {
-          tx.executeSql(
-            `CREATE TABLE IF NOT EXISTS ${TABLE_NAME} (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT NOT NULL,
-              date TEXT NOT NULL,
-              duration INTEGER NOT NULL,
-              distance REAL NOT NULL,
-              route TEXT,
-              photoUri TEXT
-            );`,
-            [],
-            () => {
-              console.log('Table created or already exists');
-              resolve();
-            },
-            (error) => {
-              console.error('Error creating table:', error);
-              reject(error);
-            }
-          );
-        });
+        if (db) { // Check if db is not null after successful open
+          db.transaction((tx) => {
+            tx.executeSql(
+              `CREATE TABLE IF NOT EXISTS ${TABLE_NAME} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                date TEXT NOT NULL,
+                duration INTEGER NOT NULL,
+                distance REAL NOT NULL,
+                route TEXT,
+                photoUri TEXT
+              );`,
+              [],
+              () => {
+                console.log('Table created or already exists');
+                resolve();
+              },
+              (error) => {
+                console.error('Error creating table:', error);
+                reject(error);
+              }
+            );
+          });
+        } else {
+          reject(new Error('Database failed to open.'));
+        }
       },
       (error) => {
         console.error('Error opening database:', error);
@@ -87,7 +91,7 @@ export const getActivities = (activityId = null) => {
     db.transaction((tx) => {
       let query = `SELECT * FROM ${TABLE_NAME}`;
       const params = [];
-      if (activityId) {
+      if (activityId !== null) { // Use strict check for null
         query += ` WHERE id = ?`;
         params.push(activityId);
       }
@@ -139,4 +143,3 @@ export const deleteActivity = (id) => {
       });
     });
 };
-

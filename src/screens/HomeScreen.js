@@ -1,6 +1,6 @@
 
 // src/screens/HomeScreen.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, Button, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getActivities } from '../services/dbService';
@@ -31,7 +31,7 @@ const HomeScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       fetchActivities();
-    }, [])
+    }, []) // Re-fetch activities when the screen focuses
   );
 
   const renderActivityItem = ({ item }) => (

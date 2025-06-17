@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator } from 'react-native';
 import { getActivities } from '../services/dbService';
-import MapView, { Polyline, Marker } from 'react-native-maps';
+import MapView, { Polyline, Marker, PROVIDER_DEFAULT, UrlTile } from 'react-native-maps';
 import CustomModal from '../components/CustomModal';
 
 const ActivityDetailScreen = ({ route }) => {
@@ -35,7 +35,7 @@ const ActivityDetailScreen = ({ route }) => {
     };
 
     fetchActivityDetails();
-  }, [activityId]);
+  }, [activityId]); // Re-fetch when activityId changes
 
   const formatDuration = (seconds) => {
     const hours = Math.floor(seconds / 3600);
@@ -66,12 +66,15 @@ const ActivityDetailScreen = ({ route }) => {
     );
   }
 
+  // Parse route coordinates from JSON string back to an array
   const routeCoordinates = activity.route ? JSON.parse(activity.route) : [];
+  
+  // Calculate initial region for the map based on route coordinates
   const initialRegion = routeCoordinates.length > 0 ? {
     latitude: routeCoordinates[0].latitude,
     longitude: routeCoordinates[0].longitude,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
+    latitudeDelta: 0.05, // Adjust zoom level as needed
+    longitudeDelta: 0.05, // Adjust zoom level as needed
   } : null;
 
   return (
@@ -95,15 +98,23 @@ const ActivityDetailScreen = ({ route }) => {
           <Text style={styles.sectionHeader}>Activity Route</Text>
           <MapView
             style={styles.map}
+            provider={PROVIDER_DEFAULT} // Use default provider to avoid Google Maps specific checks
             initialRegion={initialRegion}
             zoomEnabled={true}
             scrollEnabled={true}
           >
+            {/* OSM Tile Layer */}
+            <UrlTile
+              urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maximumZ={19}
+            />
             <Polyline coordinates={routeCoordinates} strokeWidth={4} strokeColor="blue" />
             {/* Optional: Add markers for start and end points */}
             <Marker coordinate={routeCoordinates[0]} pinColor="green" title="Start" />
             <Marker coordinate={routeCoordinates[routeCoordinates.length - 1]} pinColor="red" title="End" />
           </MapView>
+          {/* OSM Attribution is legally required */}
+          <Text style={styles.osmAttribution}>Map data &copy; OpenStreetMap contributors</Text>
         </View>
       )}
 
@@ -195,6 +206,12 @@ const styles = StyleSheet.create({
     color: 'red',
     textAlign: 'center',
     marginTop: 20,
+  },
+  osmAttribution: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 5,
   },
 });
 

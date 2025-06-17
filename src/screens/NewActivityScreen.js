@@ -1,10 +1,11 @@
+
 // src/screens/NewActivityScreen.js
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Button, StyleSheet, PermissionsAndroid, Platform, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, Button, StyleSheet, PermissionsAndroid, Platform, Image, ScrollView } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { saveActivity } from '../services/dbService';
-import MapView, { Polyline } from 'react-native-maps';
+import MapView, { Polyline, PROVIDER_DEFAULT, UrlTile } from 'react-native-maps'; // PROVIDER_DEFAULT for generic map, UrlTile for OSM
 import CustomModal from '../components/CustomModal';
 
 const NewActivityScreen = ({ navigation }) => {
@@ -50,11 +51,8 @@ const NewActivityScreen = ({ navigation }) => {
 
   const requestCameraPermission = async () => {
     if (Platform.OS === 'ios') {
-      // For iOS, camera permission is usually sufficient for photos
-      // For photo library access, typically "PhotoLibrary" permission is needed,
-      // but react-native-image-picker handles this internally or prompts user.
       const status = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.CAMERA, // Placeholder for iOS camera permission if a direct request method was needed
+        PermissionsAndroid.PERMISSIONS.CAMERA, // Placeholder for iOS camera permission.
         {
           title: 'Camera Permission',
           message: 'This app needs camera access to take photos.',
@@ -63,7 +61,7 @@ const NewActivityScreen = ({ navigation }) => {
           buttonPositive: 'OK',
         }
       );
-      return status === PermissionsAndroid.RESULTS.GRANTED; // This will return true if granted
+      return status === PermissionsAndroid.RESULTS.GRANTED;
     } else { // Android
       const cameraGranted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.CAMERA,
@@ -75,8 +73,6 @@ const NewActivityScreen = ({ navigation }) => {
           buttonPositive: 'OK',
         },
       );
-      // For Android 13+ (API 33+), READ_MEDIA_IMAGES and READ_MEDIA_VIDEO are used for media access.
-      // WRITE_EXTERNAL_STORAGE is deprecated for media files owned by the app.
       if (Platform.Version >= 33) {
           const readMediaImagesGranted = await PermissionsAndroid.request(
               PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
@@ -88,10 +84,8 @@ const NewActivityScreen = ({ navigation }) => {
                   buttonPositive: 'OK',
               }
           );
-          // Only camera and new media permissions are needed for Android 13+
           return cameraGranted === PermissionsAndroid.RESULTS.GRANTED && readMediaImagesGranted === PermissionsAndroid.RESULTS.GRANTED;
       } else {
-          // For Android < 13, WRITE_EXTERNAL_STORAGE is still needed to save photos to gallery.
           const writeStorageGranted = await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
             {
@@ -250,13 +244,13 @@ const NewActivityScreen = ({ navigation }) => {
         setModalMessage(`Camera error: ${response.errorMessage}`);
         setModalVisible(true);
       } else if (response.assets && response.assets.length > 0) {
-        setPhotoUri(response.assets[0].uri);
+        setPhotoUri(response.assets[0].uri || null); // Ensure uri is string or null
       }
     });
   };
 
   const choosePhotoFromLibrary = async () => {
-    const hasPermission = await requestCameraPermission(); // Use camera permission check for storage too
+    const hasPermission = await requestCameraPermission(); // Using camera permission for storage too
     if (!hasPermission) {
       setModalMessage('Storage permission denied. Cannot access library.');
       setModalVisible(true);
@@ -278,7 +272,7 @@ const NewActivityScreen = ({ navigation }) => {
         setModalMessage(`Image library error: ${response.errorMessage}`);
         setModalVisible(true);
       } else if (response.assets && response.assets.length > 0) {
-        setPhotoUri(response.assets[0].uri);
+        setPhotoUri(response.assets[0].uri || null); // Ensure uri is string or null
       }
     });
   };
@@ -327,11 +321,13 @@ const NewActivityScreen = ({ navigation }) => {
         </View>
       </View>
 
+      {/* MapView only renders if there are route coordinates and a current location */}
       {routeCoordinates.length > 0 && currentLocation && (
         <View style={styles.mapContainer}>
           <Text style={styles.sectionHeader}>Activity Route</Text>
           <MapView
             style={styles.map}
+            provider={PROVIDER_DEFAULT} // Use default provider to avoid Google Maps specific checks
             initialRegion={{
               latitude: currentLocation.latitude,
               longitude: currentLocation.longitude,
@@ -346,8 +342,15 @@ const NewActivityScreen = ({ navigation }) => {
             }}
             showsUserLocation={true}
           >
+            {/* OSM Tile Layer */}
+            <UrlTile
+              urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maximumZ={19}
+            />
             <Polyline coordinates={routeCoordinates} strokeWidth={4} strokeColor="blue" />
           </MapView>
+          {/* OSM Attribution is legally required */}
+          <Text style={styles.osmAttribution}>Map data &copy; OpenStreetMap contributors</Text>
         </View>
       )}
 
@@ -438,6 +441,12 @@ const styles = StyleSheet.create({
     height: 300,
     width: '100%',
     borderRadius: 10,
+  },
+  osmAttribution: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 5,
   },
 });
 
